@@ -8,6 +8,8 @@
     <style>
         :root { --primary: #2c3e50; --matheus: #3498db; --rebeca: #e91e63; --secondary: #27ae60; --danger: #e74c3c; --light: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin: 0; padding: 0; color: #333; }
+        
+        /* Menu de Abas Superior */
         .tabs { display: flex; background: var(--primary); padding: 10px 10px 0; gap: 5px; position: sticky; top: 0; z-index: 100; }
         .tab-btn { padding: 12px; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: bold; color: white; background: rgba(255,255,255,0.1); flex: 1; transition: 0.3s; }
         .tab-btn.active.matheus { background: var(--matheus); }
@@ -16,39 +18,47 @@
         .container { max-width: 1200px; margin: auto; padding: 20px; }
         .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         
-        /* Filtro de Meses */
-        .month-filter { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
-        .month-btn { padding: 8px 15px; border: 1px solid #ddd; border-radius: 20px; background: white; cursor: pointer; white-space: nowrap; font-size: 14px; }
-        .month-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        /* Filtro de Meses Estilizado */
+        .month-filter { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: thin; }
+        .month-btn { padding: 8px 18px; border: 1px solid #ddd; border-radius: 20px; background: white; cursor: pointer; white-space: nowrap; font-size: 14px; transition: 0.2s; }
+        .month-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
+        /* Cards de Resumo */
         .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; border-bottom: 4px solid transparent; }
-        .card.saldo { border-color: var(--primary); }
-        .card h3 { margin: 0; font-size: 0.9em; color: #7f8c8d; text-transform: uppercase; }
-        .card p { font-size: 1.6em; margin: 10px 0 0; font-weight: bold; }
+        .card.saldo { border-bottom-color: var(--primary); }
+        .card h3 { margin: 0; font-size: 0.85em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; }
+        .card p { font-size: 1.7em; margin: 10px 0 0; font-weight: bold; }
 
+        /* Layout em Grade */
         .main-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
-        .form-section, .chart-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .form-section, .chart-section { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #dfe6e9; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { color: white; border: none; cursor: pointer; font-weight: bold; }
-        .btn-planilha { background: #34495e; padding: 10px 20px; text-decoration: none; color: white; border-radius: 8px; font-size: 14px; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #dfe6e9; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
+        input:focus { border-color: var(--matheus); }
+        button { color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 12px; overflow: hidden; }
+        .btn-planilha { background: #34495e; padding: 10px 20px; text-decoration: none; color: white; border-radius: 8px; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+        
+        /* Tabela Responsiva */
+        .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8f9fa; color: #636e72; font-weight: 600; }
+        th { background: #f8f9fa; color: #636e72; font-size: 0.9em; }
         
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
         .badge-desp { background: #ffeaa7; color: #d63031; }
         .badge-rec { background: #c8f7dc; color: #27ae60; }
 
-        #loading { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:1000; justify-content:center; align-items:center; font-direction: column; }
-        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
+        #loading { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:1000; justify-content:center; align-items:center; flex-direction: column; font-weight: bold; }
+        
+        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } .card p { font-size: 1.4em; } }
     </style>
 </head>
 <body>
 
-<div id="loading"><div>Sincronizando Banco de Dados...</div></div>
+<div id="loading">🚀 Sincronizando dados...</div>
 
 <div class="tabs">
     <button class="tab-btn active matheus" onclick="switchTab('matheus')">MATHEUS</button>
@@ -58,44 +68,45 @@
 <div class="container">
     <div class="header-actions">
         <h1 id="user-title" style="margin: 0;">💰 Matheus</h1>
-        <a href="https://docs.google.com/spreadsheets/d/1Gidv65_B63Y3V7q3XWj0B8p68uI4Yk23A-8nK7N9M4o/edit" target="_blank" class="btn-planilha">⚙️ Editar/Apagar na Planilha</a>
+        <a href="https://docs.google.com/spreadsheets/d/1Gidv65_B63Y3V7q3XWj0B8p68uI4Yk23A-8nK7M9M4o/edit" target="_blank" class="btn-planilha">⚙️ Editar ou Apagar</a>
     </div>
 
-    <div class="month-filter" id="month-filter">
-        </div>
+    <div class="month-filter" id="month-filter"></div>
 
     <div class="summary">
-        <div class="card saldo"><h3>Balanço Mensal</h3><p id="total-saldo">R$ 0,00</p></div>
-        <div class="card"><h3>Receitas</h3><p id="total-receita" style="color: var(--secondary)">R$ 0,00</p></div>
-        <div class="card"><h3>Despesas</h3><p id="total-despesa" style="color: var(--danger)">R$ 0,00</p></div>
+        <div class="card saldo"><h3>Balanço do Mês</h3><p id="total-saldo">R$ 0,00</p></div>
+        <div class="card"><h3>Entradas</h3><p id="total-receita" style="color: var(--secondary)">R$ 0,00</p></div>
+        <div class="card"><h3>Saídas</h3><p id="total-despesa" style="color: var(--danger)">R$ 0,00</p></div>
     </div>
 
     <div class="main-grid">
         <div class="form-section">
-            <h3>Novo Lançamento</h3>
+            <h3>Novo Registro</h3>
             <input type="date" id="data">
-            <input type="text" id="descricao" placeholder="Descrição (ex: Aluguel)">
-            <input type="number" id="valor" step="0.01" placeholder="Valor">
-            <input type="text" id="categoria" placeholder="Categoria">
+            <input type="text" id="descricao" placeholder="O que você comprou?">
+            <input type="number" id="valor" step="0.01" placeholder="Valor R$">
+            <input type="text" id="categoria" placeholder="Categoria (Ex: Lazer, Casa)">
             <select id="tipo">
                 <option value="despesa" selected>Despesa (-)</option>
                 <option value="receita">Receita (+)</option>
             </select>
-            <button id="add-btn" onclick="adicionar()">Salvar na Nuvem</button>
+            <button id="add-btn" onclick="adicionar()">Salvar na Planilha</button>
         </div>
-        <div class="chart-section">
+        <div class="chart-section" style="min-height: 300px;">
             <canvas id="meuGrafico"></canvas>
         </div>
     </div>
 
-    <h3>Histórico do Mês</h3>
-    <div style="overflow-x: auto;">
-        <table>
-            <thead>
-                <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th></tr>
-            </thead>
-            <tbody id="corpo-tabela"></tbody>
-        </table>
+    <h3>Histórico Mensal</h3>
+    <div class="table-container">
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th></tr>
+                </thead>
+                <tbody id="corpo-tabela"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -103,7 +114,7 @@
     const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbyLkI3AjE71PQtENOXJOkWi4ozzBARu2JWKSczUXic1jYA7O_3O5CFNeFQ1N_zo70fYMA/exec";
     let currentUser = 'matheus';
     let rawData = [];
-    let currentMonth = new Date().getMonth(); // 0-11
+    let currentMonth = new Date().getMonth(); 
     let meuGrafico;
 
     const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -128,8 +139,10 @@
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelector(`.tab-btn.${user}`).classList.add('active');
         document.getElementById('user-title').innerText = `💰 ${user.charAt(0).toUpperCase() + user.slice(1)}`;
+        
         const color = user === 'matheus' ? '#3498db' : '#e91e63';
         document.getElementById('add-btn').style.background = color;
+        
         await buscarDados();
     }
 
@@ -139,7 +152,9 @@
             const response = await fetch(`${URL_GOOGLE}?user=${currentUser}`);
             rawData = await response.json();
             renderizarTela(rawData);
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Erro ao buscar dados:", e);
+        }
         document.getElementById('loading').style.display = 'none';
     }
 
@@ -147,7 +162,8 @@
         const d = document.getElementById('data').value;
         const v = document.getElementById('valor').value;
         const desc = document.getElementById('descricao').value;
-        if(!d || !v || !desc) return alert("Preencha os campos!");
+        
+        if(!d || !v || !desc) return alert("Por favor, preencha Data, Valor e Descrição.");
 
         const payload = {
             user: currentUser,
@@ -159,11 +175,23 @@
         };
 
         document.getElementById('loading').style.display = 'flex';
-        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         
-        document.getElementById('descricao').value = '';
-        document.getElementById('valor').value = '';
-        setTimeout(buscarDados, 2000);
+        try {
+            await fetch(URL_GOOGLE, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                body: JSON.stringify(payload) 
+            });
+            
+            document.getElementById('descricao').value = '';
+            document.getElementById('valor').value = '';
+            
+            // Pequeno delay para o Google registrar e o site atualizar
+            setTimeout(buscarDados, 2000);
+        } catch (e) {
+            alert("Erro ao conectar com a planilha.");
+            document.getElementById('loading').style.display = 'none';
+        }
     }
 
     function renderizarTela(lista) {
@@ -171,11 +199,17 @@
         corpo.innerHTML = '';
         let rec = 0, desp = 0, catData = {};
 
-        // Filtrar por mês
+        if (!Array.isArray(lista)) return;
+
+        // Filtra os dados apenas do mês selecionado
         const listaFiltrada = lista.filter(t => {
-            const dataObjeto = new Date(t.data);
-            return dataObjeto.getMonth() === currentMonth;
+            const dataObj = new Date(t.data);
+            return dataObj.getMonth() === currentMonth;
         });
+
+        if (listaFiltrada.length === 0) {
+            corpo.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: #95a5a6;">Nenhum registro encontrado para este mês.</td></tr>';
+        }
 
         listaFiltrada.slice().reverse().forEach(t => {
             const v = parseFloat(t.valor) || 0;
@@ -184,39 +218,52 @@
             if(ehReceita) rec += v;
             else { 
                 desp += v; 
-                catData[t.categoria] = (catData[t.categoria] || 0) + v;
+                let c = t.categoria || 'Geral';
+                catData[c] = (catData[c] || 0) + v;
             }
 
             corpo.innerHTML += `<tr>
                 <td>${new Date(t.data).toLocaleDateString('pt-br')}</td>
-                <td>${t.descricao}</td>
-                <td><span style="color:#7f8c8d; font-size:12px">${t.categoria}</span></td>
+                <td style="font-weight: 500;">${t.descricao}</td>
+                <td><span style="color:#95a5a6; font-size:13px">${t.categoria || 'Geral'}</span></td>
                 <td><span class="badge ${ehReceita?'badge-rec':'badge-desp'}">${t.tipo}</span></td>
-                <td style="font-weight:bold; color:${ehReceita?'#27ae60':'#2d3436'}">R$ ${v.toFixed(2)}</td>
+                <td style="font-weight:bold; color:${ehReceita?'#27ae60':'#2c3e50'}">R$ ${v.toLocaleString('pt-br', {minimumFractionDigits: 2})}</td>
             </tr>`;
         });
 
-        document.getElementById('total-saldo').innerText = `R$ ${(rec - desp).toFixed(2)}`;
-        document.getElementById('total-receita').innerText = `R$ ${rec.toFixed(2)}`;
-        document.getElementById('total-despesa').innerText = `R$ ${desp.toFixed(2)}`;
+        document.getElementById('total-saldo').innerText = `R$ ${(rec - desp).toLocaleString('pt-br', {minimumFractionDigits: 2})}`;
+        document.getElementById('total-receita').innerText = `R$ ${rec.toLocaleString('pt-br', {minimumFractionDigits: 2})}`;
+        document.getElementById('total-despesa').innerText = `R$ ${desp.toLocaleString('pt-br', {minimumFractionDigits: 2})}`;
+        
         renderGrafico(catData);
     }
 
     function renderGrafico(dados) {
         const ctx = document.getElementById('meuGrafico').getContext('2d');
         if(meuGrafico) meuGrafico.destroy();
-        if(Object.keys(dados).length === 0) return;
+        
+        const labels = Object.keys(dados);
+        if(labels.length === 0) return;
 
         meuGrafico = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: Object.keys(dados),
-                datasets: [{ data: Object.values(dados), backgroundColor: ['#3498db','#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22'] }]
+                labels: labels,
+                datasets: [{ 
+                    data: Object.values(dados), 
+                    backgroundColor: ['#3498db','#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22','#1abc9c','#34495e'] 
+                }]
             },
-            options: { maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            options: { 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } 
+                } 
+            }
         });
     }
 
+    // Configurações Iniciais
     document.getElementById('data').valueAsDate = new Date();
     initMonths();
     switchTab('matheus');
