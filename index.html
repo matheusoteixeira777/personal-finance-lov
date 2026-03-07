@@ -3,38 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financeiro Mestre & Rebeca</title>
+    <title>Financeiro Matheus & Rebeca</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --matheus: #3498db; --rebeca: #e91e63; --secondary: #27ae60; --danger: #e74c3c; --light: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin: 0; padding: 0; }
-        
-        /* Menu de Abas */
         .tabs { display: flex; background: var(--primary); padding: 10px 10px 0; gap: 5px; position: sticky; top: 0; z-index: 100; }
         .tab-btn { padding: 12px 25px; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: bold; color: white; background: rgba(255,255,255,0.1); transition: 0.3s; }
         .tab-btn.active.matheus { background: var(--matheus); }
         .tab-btn.active.rebeca { background: var(--rebeca); }
-        
         .container { max-width: 1200px; margin: auto; padding: 20px; }
         .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
         .card p { font-size: 1.5em; margin: 10px 0 0; font-weight: bold; }
-        
         .main-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
         .form-section, .chart-section { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         button { color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
         button:disabled { background: #bdc3c7 !important; cursor: not-allowed; }
         .btn-export { background: #34495e; width: auto; padding: 10px 20px; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 10px; overflow: hidden; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background: var(--primary); color: white; }
-        
-        /* Loading Overlay */
         #loading { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:1000; justify-content:center; align-items:center; font-weight:bold; color: var(--primary); }
-
         @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } .tabs { overflow-x: auto; } }
     </style>
 </head>
@@ -50,7 +41,7 @@
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
         <h1 id="user-title">💰 Financeiro: Matheus</h1>
-        <button class="btn-export" onclick="exportarCSV()">Exportar CSV</button>
+        <button class="btn-export" onclick="exportarCSV()">Ver Planilha</button>
     </div>
 
     <div class="summary">
@@ -63,9 +54,9 @@
         <div class="form-section">
             <h3>Novo Lançamento</h3>
             <input type="date" id="data">
-            <input type="text" id="descricao" placeholder="O que comprou?">
+            <input type="text" id="descricao" placeholder="Descrição (ex: Aluguel, Almoço)">
             <input type="number" id="valor" step="0.01" placeholder="Valor (0.00)">
-            <input type="text" id="categoria" placeholder="Categoria (Ex: Mercado)">
+            <input type="text" id="categoria" placeholder="Categoria (ex: Moradia, Lazer)">
             <select id="tipo">
                 <option value="receita">Receita (+)</option>
                 <option value="despesa" selected>Despesa (-)</option>
@@ -103,11 +94,9 @@
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelector(`.tab-btn.${user}`).classList.add('active');
         document.getElementById('user-title').innerText = `💰 Financeiro: ${user.charAt(0).toUpperCase() + user.slice(1)}`;
-        
         const color = user === 'matheus' ? '#3498db' : '#e91e63';
         document.getElementById('total-saldo').style.color = color;
         document.getElementById('add-btn').style.background = color;
-        
         await buscarDados();
     }
 
@@ -117,23 +106,24 @@
             const response = await fetch(`${URL_GOOGLE}?user=${currentUser}`);
             const dados = await response.json();
             renderizarTela(dados);
-        } catch (e) {
-            alert("Erro ao buscar dados da planilha!");
-        }
+        } catch (e) { console.error(e); }
         showLoading(false);
     }
 
     async function adicionar() {
         const d = document.getElementById('data').value;
         const v = document.getElementById('valor').value;
-        if(!d || !v) return alert("Data e Valor são obrigatórios!");
+        const desc = document.getElementById('descricao').value;
+        const cat = document.getElementById('categoria').value;
+
+        if(!d || !v || !desc) return alert("Preencha Data, Valor e Descrição!");
 
         const payload = {
             user: currentUser,
             data: d,
-            descricao: document.getElementById('descricao').value || 'S/D',
+            descricao: desc,
             valor: parseFloat(v),
-            categoria: document.getElementById('categoria').value || 'Geral',
+            categoria: cat || 'Geral',
             tipo: document.getElementById('tipo').value
         };
 
@@ -141,20 +131,13 @@
         try {
             await fetch(URL_GOOGLE, {
                 method: 'POST',
-                mode: 'no-cors', // Necessário para Google Apps Script POST
+                mode: 'no-cors',
                 body: JSON.stringify(payload)
             });
-            
-            // Limpar formulário
             document.getElementById('descricao').value = '';
             document.getElementById('valor').value = '';
-            
-            // Aguardar um pouco para o Google processar e buscar novamente
             setTimeout(buscarDados, 1500);
-        } catch (e) {
-            alert("Erro ao salvar!");
-            showLoading(false);
-        }
+        } catch (e) { alert("Erro ao salvar!"); showLoading(false); }
     }
 
     function renderizarTela(lista) {
@@ -163,12 +146,11 @@
         let rec = 0, desp = 0;
         let catData = {};
 
-        // Inverter para mostrar os mais novos primeiro
+        // Filtra e ordena (mais recentes no topo)
         lista.reverse().forEach(t => {
             const v = parseFloat(t.valor);
-            if(t.tipo === 'receita') {
-                rec += v;
-            } else { 
+            if(t.tipo === 'receita') rec += v;
+            else { 
                 desp += v; 
                 catData[t.categoria] = (catData[t.categoria] || 0) + v;
             }
@@ -185,7 +167,6 @@
         document.getElementById('total-saldo').innerText = `R$ ${(rec - desp).toFixed(2)}`;
         document.getElementById('total-receita').innerText = `R$ ${rec.toFixed(2)}`;
         document.getElementById('total-despesa').innerText = `R$ ${desp.toFixed(2)}`;
-        
         renderGrafico(catData);
     }
 
@@ -196,17 +177,14 @@
             type: 'doughnut',
             data: {
                 labels: Object.keys(dados),
-                datasets: [{ 
-                    data: Object.values(dados), 
-                    backgroundColor: ['#3498db','#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22','#1abc9c'] 
-                }]
+                datasets: [{ data: Object.values(dados), backgroundColor: ['#3498db','#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22','#1abc9c'] }]
             },
             options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
     }
 
     function exportarCSV() {
-        window.open(`${URL_GOOGLE}?user=${currentUser}`, '_blank');
+        window.open("https://docs.google.com/spreadsheets/d/1Gidv65_B63Y3V7q3XWj0B8p68uI4Yk23A-8nK7N9M4o/edit", '_blank');
     }
 
     document.getElementById('data').valueAsDate = new Date();
