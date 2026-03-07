@@ -3,18 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle Financeiro - Matheus & Rebeca</title>
+    <title>Financeiro - Matheus & Rebeca</title>
+    
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/matheusoteixeira777/personal-finance-lov/main/image_2.png">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --matheus: #3498db; --rebeca: #e91e63; --secondary: #27ae60; --danger: #e74c3c; --light: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin: 0; padding: 0; color: #333; }
+        
         .tabs { display: flex; background: var(--primary); padding: 10px 10px 0; gap: 5px; position: sticky; top: 0; z-index: 100; }
         .tab-btn { padding: 12px; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: bold; color: white; background: rgba(255,255,255,0.1); flex: 1; transition: 0.3s; }
         .tab-btn.active.matheus { background: var(--matheus); }
         .tab-btn.active.rebeca { background: var(--rebeca); }
-        .container { max-width: 1200px; margin: auto; padding: 20px; }
-        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+        
+        /* HEADER COM LOGO */
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .logo-container { display: flex; align-items: center; gap: 12px; }
+        .logo-img { height: 45px; width: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .main-title { margin: 0; font-size: 1.5rem; color: var(--primary); }
+
         .month-filter { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
         .month-btn { padding: 8px 15px; border: 1px solid #ddd; border-radius: 20px; background: white; cursor: pointer; white-space: nowrap; font-size: 14px; }
         .month-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -38,7 +48,7 @@
         .badge-desp { background: #ffeaa7; color: #d63031; }
         .badge-rec { background: #c8f7dc; color: #27ae60; }
         #loading { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:1000; justify-content:center; align-items:center; }
-        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } .main-title { font-size: 1.2rem; } }
     </style>
 </head>
 <body>
@@ -52,8 +62,13 @@
 
 <div class="container">
     <div class="header-actions">
-        <h1 id="user-title" style="margin: 0;">Controle Financeiro</h1>
-        <a href="https://docs.google.com/spreadsheets/d/1Gidv65_B63Y3V7q3XWj0B8p68uI4Yk23A-8nK7N9M4o/edit" target="_blank" class="btn-planilha">⚙️ Editar/Apagar</a>
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/matheusoteixeira777/personal-finance-lov/main/image_2.png" 
+                 onerror="this.style.display='none'" 
+                 class="logo-img" alt="Logo">
+            <h1 class="main-title" id="page-title">Controle Financeiro</h1>
+        </div>
+        <a href="https://docs.google.com/spreadsheets/d/1Gidv65_B63Y3V7q3XWj0B8p68uI4Yk23A-8nK7N9M4o/edit" target="_blank" class="btn-planilha">⚙️ Editar Dados</a>
     </div>
 
     <div class="month-filter" id="month-filter"></div>
@@ -65,4 +80,141 @@
     </div>
 
     <div class="main-grid">
-        <div class="form-section
+        <div class="form-section">
+            <h3>Novo Lançamento</h3>
+            <input type="date" id="data">
+            <input type="text" id="descricao" placeholder="Descrição (ex: Mercado)">
+            <input type="number" id="valor" step="0.01" placeholder="Valor R$">
+            <input type="text" id="categoria" placeholder="Categoria">
+            <select id="tipo">
+                <option value="despesa" selected>Despesa (-)</option>
+                <option value="receita">Receita (+)</option>
+            </select>
+            <button id="add-btn" onclick="adicionar()">Salvar na Planilha</button>
+        </div>
+        <div class="chart-section" style="min-height: 300px;">
+            <canvas id="meuGrafico"></canvas>
+        </div>
+    </div>
+
+    <h3>Histórico Mensal</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th></tr>
+            </thead>
+            <tbody id="corpo-tabela"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbyLkI3AjE71PQtENOXJOkWi4ozzBARu2JWKSczUXic1jYA7O_3O5CFNeFQ1N_zo70fYMA/exec";
+    let currentUser = 'matheus';
+    let rawData = [];
+    let currentMonth = new Date().getMonth();
+    let meuGrafico;
+    const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+    function initMonths() {
+        const container = document.getElementById('month-filter');
+        container.innerHTML = meses.map((mes, i) => `
+            <button class="month-btn ${i === currentMonth ? 'active' : ''}" onclick="filterByMonth(${i})">${mes}</button>
+        `).join('');
+    }
+
+    function filterByMonth(monthIndex) {
+        currentMonth = monthIndex;
+        document.querySelectorAll('.month-btn').forEach((btn, i) => btn.classList.toggle('active', i === monthIndex));
+        renderizarTela(rawData);
+    }
+
+    async function switchTab(user) {
+        currentUser = user;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.tab-btn.${user}`).classList.add('active');
+        document.getElementById('add-btn').style.background = user === 'matheus' ? '#3498db' : '#e91e63';
+        await buscarDados();
+    }
+
+    async function buscarDados() {
+        document.getElementById('loading').style.display = 'flex';
+        try {
+            const response = await fetch(`${URL_GOOGLE}?user=${currentUser}`);
+            rawData = await response.json();
+            renderizarTela(rawData);
+        } catch (e) { console.error(e); }
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    async function adicionar() {
+        const d = document.getElementById('data').value;
+        const v = document.getElementById('valor').value;
+        const desc = document.getElementById('descricao').value;
+        if(!d || !v || !desc) return alert("Preencha Data, Valor e Descrição!");
+
+        const payload = { user: currentUser, data: d, descricao: desc, valor: parseFloat(v), categoria: document.getElementById('categoria').value || 'Geral', tipo: document.getElementById('tipo').value };
+        document.getElementById('loading').style.display = 'flex';
+        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        document.getElementById('descricao').value = '';
+        document.getElementById('valor').value = '';
+        setTimeout(buscarDados, 2000);
+    }
+
+    function renderizarTela(lista) {
+        const corpo = document.getElementById('corpo-tabela');
+        corpo.innerHTML = '';
+        let rec = 0, desp = 0, catData = {};
+
+        if(!Array.isArray(lista)) return;
+
+        const listaFiltrada = lista.filter(t => {
+            const dt = new String(t.data);
+            const dataObj = dt.includes('-') ? new Date(dt.replace(/-/g, '\/')) : new Date(t.data);
+            return dataObj.getMonth() === currentMonth;
+        });
+
+        listaFiltrada.slice().reverse().forEach(t => {
+            const v = parseFloat(t.valor) || 0;
+            const ehRec = t.tipo.toLowerCase() === 'receita';
+            if(ehRec) rec += v;
+            else { 
+                desp += v; 
+                let c = t.categoria || 'Geral';
+                catData[c] = (catData[c] || 0) + v; 
+            }
+
+            const descFinal = (t.descricao && t.descricao !== 'undefined') ? t.descricao : '---';
+
+            corpo.innerHTML += `<tr>
+                <td>${new Date(t.data).toLocaleDateString('pt-br')}</td>
+                <td>${descFinal}</td>
+                <td>${t.categoria || 'Geral'}</td>
+                <td><span class="badge ${ehRec?'badge-rec':'badge-desp'}">${t.tipo}</span></td>
+                <td style="font-weight:bold">R$ ${v.toFixed(2)}</td>
+            </tr>`;
+        });
+
+        document.getElementById('total-saldo').innerText = `R$ ${(rec - desp).toFixed(2)}`;
+        document.getElementById('total-receita').innerText = `R$ ${rec.toFixed(2)}`;
+        document.getElementById('total-despesa').innerText = `R$ ${desp.toFixed(2)}`;
+        renderGrafico(catData);
+    }
+
+    function renderGrafico(dados) {
+        const ctx = document.getElementById('meuGrafico').getContext('2d');
+        if(meuGrafico) meuGrafico.destroy();
+        if(Object.keys(dados).length === 0) return;
+        meuGrafico = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: Object.keys(dados), datasets: [{ data: Object.values(dados), backgroundColor: ['#3498db','#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22'] }] },
+            options: { maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+        });
+    }
+
+    document.getElementById('data').valueAsDate = new Date();
+    initMonths();
+    switchTab('matheus');
+</script>
+</body>
+</html>
