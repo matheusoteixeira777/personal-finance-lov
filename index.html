@@ -262,4 +262,47 @@
 
     function updateCharts(catData, pagData, histRec, histDesp) {
         // Gráfico de Categorias (Barras)
-        const sorted = Object.entries
+        const sorted = Object.entries(catData).sort((a,b) => b[1]-a[1]);
+        if(chartCat) chartCat.destroy();
+        chartCat = new Chart(document.getElementById('graficoCategoria'), {
+            type: 'bar',
+            data: { labels: sorted.map(i=>i[0]), datasets: [{ data: sorted.map(i=>i[1]), backgroundColor: '#3498db', borderRadius: 5 }]},
+            options: { maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }
+        });
+
+        // Gráfico de Pagamentos (Pizza)
+        if(chartPag) chartPag.destroy();
+        chartPag = new Chart(document.getElementById('graficoPagamento'), {
+            type: 'pie',
+            data: { labels: Object.keys(pagData), datasets: [{ data: Object.values(pagData), backgroundColor: ['#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22'] }]},
+            options: { maintainAspectRatio: false }
+        });
+
+        // NOVO: Gráfico de Evolução (Linhas)
+        if(chartLinha) chartLinha.destroy();
+        const saldosMensais = histRec.map((r, idx) => r - histDesp[idx]);
+        
+        chartLinha = new Chart(document.getElementById('graficoLinha'), {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    { label: 'Receitas', data: histRec, borderColor: '#27ae60', backgroundColor: '#27ae60', tension: 0.3, fill: false },
+                    { label: 'Despesas', data: histDesp, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3, fill: false },
+                    { label: 'Saldo Mensal', data: saldosMensais, backgroundColor: '#2c3e50', type: 'bar', borderRadius: 5 }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    document.getElementById('data').valueAsDate = new Date();
+    initMonths();
+    switchTab('matheus');
+</script>
+</body>
+</html>
