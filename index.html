@@ -185,4 +185,82 @@
     }
 
     function renderizarTela(lista) {
-        const corpo = document
+        const corpo = document.getElementById('corpo-tabela');
+        corpo.innerHTML = '';
+        let recM = 0, despM = 0, saldoAcum = 0;
+        let catD = {}, pagD = {};
+        let histRec = new Array(12).fill(0), histDesp = new Array(12).fill(0);
+
+        lista.forEach(t => {
+            const v = parseFloat(t.valor) || 0;
+            const dataObjeto = new Date(t.data);
+            const m = dataObjeto.getMonth();
+            const ehR = t.tipo && t.tipo.toLowerCase() === 'receita';
+            const ehInv = t.categoria === 'Investimentos';
+
+            // Saldo Acumulado (Sempre abate o saldo da conta)
+            if (m <= currentMonth) saldoAcum += ehR ? v : -v;
+
+            // Histórico (Sempre mostra nos gráficos para controle visual)
+            if (ehR) histRec[m] += v;
+            else histDesp[m] += v;
+
+            if (m === currentMonth) {
+                if (ehR) {
+                    recM += v;
+                } else {
+                    // SEPARAÇÃO: Se for investimento, não soma no card de gastos (despM)
+                    if (!ehInv) {
+                        despM += v; 
+                    }
+                    // Mas continua somando nos dados para os gráficos
+                    catD[t.categoria] = (catD[t.categoria] || 0) + v;
+                    pagD[t.pagamento] = (pagD[t.pagamento] || 0) + v;
+                }
+                
+                let badgeClass = ehR ? 'badge-rec' : (ehInv ? 'badge-inv' : 'badge-desp');
+                const dataF = dataObjeto.toLocaleDateString('pt-br').slice(0,5);
+                corpo.innerHTML += `<tr><td>${dataF}</td><td>${t.descricao}</td><td>${t.categoria}</td><td>${t.pagamento || '-'}</td>
+                    <td><span class="badge ${badgeClass}">${t.tipo}</span></td><td style="font-weight:bold">${formatCurrency(v)}</td></tr>`;
+            }
+        });
+
+        document.getElementById('total-saldo').innerText = formatCurrency(saldoAcum);
+        document.getElementById('total-receita').innerText = formatCurrency(recM);
+        document.getElementById('total-despesa').innerText = formatCurrency(despM);
+        updateCharts(catD, pagD, histRec, histDesp);
+    }
+
+    function updateCharts(catData, pagData, histRec, histDesp) {
+        const sorted = Object.entries(catData).sort((a,b) => b[1]-a[1]);
+        if(chartCat) chartCat.destroy();
+        chartCat = new Chart(document.getElementById('graficoCategoria'), {
+            type: 'bar',
+            data: { labels: sorted.map(i=>i[0]), datasets: [{ data: sorted.map(i=>i[1]), backgroundColor: '#3498db', borderRadius: 5 }]},
+            options: { maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }
+        });
+
+        if(chartPag) chartPag.destroy();
+        chartPag = new Chart(document.getElementById('graficoPagamento'), {
+            type: 'pie',
+            data: { labels: Object.keys(pagData), datasets: [{ data: Object.values(pagData), backgroundColor: ['#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22'] }]},
+            options: { maintainAspectRatio: false }
+        });
+
+        if(chartLinha) chartLinha.destroy();
+        chartLinha = new Chart(document.getElementById('graficoLinha'), {
+            type: 'line',
+            data: { labels: meses, datasets: [
+                { label: 'Receitas', data: histRec, borderColor: '#27ae60', backgroundColor: '#27ae60', tension: 0.3 },
+                { label: 'Despesas (Inc. Inv)', data: histDesp, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3 },
+                { label: 'Saldo (R$)', data: histRec.map((r, i) => r - histDesp[i]), backgroundColor: '#2c3e50', type: 'bar', borderRadius: 5 }
+            ]},
+            options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    document.getElementById('data').valueAsDate = new Date();
+    initMonths(); switchTab('matheus');
+</script>
+</body>
+</html>
