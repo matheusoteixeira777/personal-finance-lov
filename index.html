@@ -31,10 +31,7 @@
         .card h3 { margin: 0; font-size: 0.8em; color: #7f8c8d; text-transform: uppercase; }
         .card p { font-size: 1.5em; margin: 10px 0 0; font-weight: bold; }
         
-        /* GRID DE CIMA */
         .top-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        
-        /* GRID DE BAIXO (HISTÓRICO) */
         .bottom-grid { width: 100%; margin-bottom: 20px; }
 
         .section-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); height: 100%; display: flex; flex-direction: column; }
@@ -52,9 +49,9 @@
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
         .badge-desp { background: #ffeaa7; color: #d63031; }
         .badge-rec { background: #c8f7dc; color: #27ae60; }
+        .badge-inv { background: #d1d8ff; color: #4834d4; }
         
         #loading { display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:1000; justify-content:center; align-items:center; flex-direction: column; }
-        
         @media (max-width: 1024px) { .top-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -72,9 +69,7 @@
 
     <div class="summary-header">
         <h2 style="margin:0; font-size: 1.1em; color: var(--primary);">Resumo de <span id="user-display">Matheus</span></h2>
-        <button class="hide-toggle" onclick="togglePrivacy()">
-            <i id="eye-icon" class="fas fa-eye"></i>
-        </button>
+        <button class="hide-toggle" onclick="togglePrivacy()"><i id="eye-icon" class="fas fa-eye"></i></button>
     </div>
 
     <div class="summary">
@@ -113,29 +108,17 @@
             <button id="add-btn" onclick="adicionar()">Salvar na Planilha</button>
         </div>
 
-        <div class="section-card">
-            <h3>Gastos por Categoria</h3>
-            <div class="chart-wrapper"><canvas id="graficoCategoria"></canvas></div>
-        </div>
-
-        <div class="section-card">
-            <h3>Distribuição de Pagamento</h3>
-            <div class="chart-wrapper"><canvas id="graficoPagamento"></canvas></div>
-        </div>
+        <div class="section-card"><h3>Gastos por Categoria</h3><div class="chart-wrapper"><canvas id="graficoCategoria"></canvas></div></div>
+        <div class="section-card"><h3>Distribuição de Pagamento</h3><div class="chart-wrapper"><canvas id="graficoPagamento"></canvas></div></div>
     </div>
 
     <div class="bottom-grid">
-        <div class="section-card">
-            <h3>Evolução Mensal (Receitas vs Despesas)</h3>
-            <div class="line-chart-wrapper"><canvas id="graficoLinha"></canvas></div>
-        </div>
+        <div class="section-card"><h3>Evolução Mensal (Receitas vs Despesas)</h3><div class="line-chart-wrapper"><canvas id="graficoLinha"></canvas></div></div>
     </div>
 
     <div style="overflow-x: auto;">
         <table>
-            <thead>
-                <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pagamento</th><th>Tipo</th><th>Valor</th></tr>
-            </thead>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pagamento</th><th>Tipo</th><th>Valor</th></tr></thead>
             <tbody id="corpo-tabela"></tbody>
         </table>
     </div>
@@ -152,9 +135,7 @@
 
     function initMonths() {
         const container = document.getElementById('month-filter');
-        container.innerHTML = meses.map((mes, i) => `
-            <button class="month-btn ${i === currentMonth ? 'active' : ''}" onclick="filterByMonth(${i})">${mes}</button>
-        `).join('');
+        container.innerHTML = meses.map((mes, i) => `<button class="month-btn ${i === currentMonth ? 'active' : ''}" onclick="filterByMonth(${i})">${mes}</button>`).join('');
     }
 
     function togglePrivacy() {
@@ -194,115 +175,14 @@
     }
 
     async function adicionar() {
-        const d = document.getElementById('data').value;
-        const vRaw = document.getElementById('valor').value;
-        const desc = document.getElementById('descricao').value;
-        const cat = document.getElementById('categoria').value;
-        const pag = document.getElementById('pagamento').value;
-        const tipo = document.getElementById('tipo').value;
+        const d = document.getElementById('data').value, vRaw = document.getElementById('valor').value, desc = document.getElementById('descricao').value;
+        const cat = document.getElementById('categoria').value, pag = document.getElementById('pagamento').value, tipo = document.getElementById('tipo').value;
         if(!d || !vRaw || !desc || !cat || !pag) return alert("Preencha tudo!");
-        const vFormatado = parseFloat(vRaw.replace(',', '.'));
-        
         document.getElementById('loading').style.display = 'flex';
-        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ user: currentUser, data: d, descricao: desc, valor: vFormatado, categoria: cat, tipo: tipo, pagamento: pag }) });
-        
-        document.getElementById('descricao').value = '';
-        document.getElementById('valor').value = '';
+        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ user: currentUser, data: d, descricao: desc, valor: parseFloat(vRaw.replace(',', '.')), categoria: cat, tipo: tipo, pagamento: pag }) });
+        document.getElementById('descricao').value = ''; document.getElementById('valor').value = '';
         setTimeout(buscarDados, 2000);
     }
 
     function renderizarTela(lista) {
-        const corpo = document.getElementById('corpo-tabela');
-        corpo.innerHTML = '';
-        let recM = 0, despM = 0, saldoAcum = 0;
-        let catD = {}, pagD = {};
-        
-        // Dados para o gráfico de linhas (Histórico)
-        let histRec = new Array(12).fill(0);
-        let histDesp = new Array(12).fill(0);
-
-        lista.forEach(t => {
-            const v = parseFloat(t.valor) || 0;
-            const dataObjeto = new Date(t.data);
-            const m = dataObjeto.getMonth();
-            const ehR = t.tipo && t.tipo.toLowerCase() === 'receita';
-
-            // Alimenta histórico anual
-            if (ehR) histRec[m] += v;
-            else histDesp[m] += v;
-
-            // Saldo acumulado até o mês selecionado
-            if (m <= currentMonth) {
-                saldoAcum += ehR ? v : -v;
-            }
-
-            // Apenas dados do mês atual para cards e outros gráficos
-            if (m === currentMonth) {
-                if (ehR) recM += v;
-                else {
-                    despM += v;
-                    catD[t.categoria] = (catD[t.categoria] || 0) + v;
-                    pagD[t.pagamento] = (pagD[t.pagamento] || 0) + v;
-                }
-                const dataF = dataObjeto.toLocaleDateString('pt-br').slice(0,5);
-                corpo.innerHTML += `<tr>
-                    <td>${dataF}</td><td>${t.descricao}</td><td>${t.categoria}</td><td>${t.pagamento || '-'}</td>
-                    <td><span class="badge ${ehR?'badge-rec':'badge-desp'}">${t.tipo}</span></td>
-                    <td style="font-weight:bold">${formatCurrency(v)}</td>
-                </tr>`;
-            }
-        });
-
-        document.getElementById('total-saldo').innerText = formatCurrency(saldoAcum);
-        document.getElementById('total-receita').innerText = formatCurrency(recM);
-        document.getElementById('total-despesa').innerText = formatCurrency(despM);
-        
-        updateCharts(catD, pagD, histRec, histDesp);
-    }
-
-    function updateCharts(catData, pagData, histRec, histDesp) {
-        // Gráfico de Categorias (Barras)
-        const sorted = Object.entries(catData).sort((a,b) => b[1]-a[1]);
-        if(chartCat) chartCat.destroy();
-        chartCat = new Chart(document.getElementById('graficoCategoria'), {
-            type: 'bar',
-            data: { labels: sorted.map(i=>i[0]), datasets: [{ data: sorted.map(i=>i[1]), backgroundColor: '#3498db', borderRadius: 5 }]},
-            options: { maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }
-        });
-
-        // Gráfico de Pagamentos (Pizza)
-        if(chartPag) chartPag.destroy();
-        chartPag = new Chart(document.getElementById('graficoPagamento'), {
-            type: 'pie',
-            data: { labels: Object.keys(pagData), datasets: [{ data: Object.values(pagData), backgroundColor: ['#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22'] }]},
-            options: { maintainAspectRatio: false }
-        });
-
-        // NOVO: Gráfico de Evolução (Linhas)
-        if(chartLinha) chartLinha.destroy();
-        const saldosMensais = histRec.map((r, idx) => r - histDesp[idx]);
-        
-        chartLinha = new Chart(document.getElementById('graficoLinha'), {
-            type: 'line',
-            data: {
-                labels: meses,
-                datasets: [
-                    { label: 'Receitas', data: histRec, borderColor: '#27ae60', backgroundColor: '#27ae60', tension: 0.3, fill: false },
-                    { label: 'Despesas', data: histDesp, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3, fill: false },
-                    { label: 'Saldo Mensal', data: saldosMensais, backgroundColor: '#2c3e50', type: 'bar', borderRadius: 5 }
-                ]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } },
-                scales: { y: { beginAtZero: true } }
-            }
-        });
-    }
-
-    document.getElementById('data').valueAsDate = new Date();
-    initMonths();
-    switchTab('matheus');
-</script>
-</body>
-</html>
+        const corpo = document
