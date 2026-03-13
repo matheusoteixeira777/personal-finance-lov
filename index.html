@@ -77,9 +77,9 @@
             <select id="categoria">
                 <option value="" disabled selected>Escolha a Categoria</option>
                 <option value="Alimentação">Alimentação</option>
-                <option value="Moradia">Moradia</option>
-                <option value="Transporte">Transporte</option>
-                <option value="Lazer">Lazer</option>
+                <option value="Internet">Moradia</option>
+                <option value="Carro">Transporte</option>
+                <option value="TV">Lazer</option>
                 <option value="Saúde">Saúde</option>
                 <option value="Educação">Educação</option>
                 <option value="Investimentos">Investimentos</option>
@@ -234,22 +234,61 @@
     }
 
     function updateCharts(catData, pagData) {
+        // --- LÓGICA DE ORDENAÇÃO PARA CATEGORIAS ---
+        // Transformamos o objeto em array, ordenamos do maior valor para o menor e reconstruímos
+        const sortedCats = Object.entries(catData)
+            .sort((a, b) => b[1] - a[1]); // b[1] - a[1] faz o maior vir primeiro
+
+        const catLabels = sortedCats.map(item => item[0]);
+        const catValues = sortedCats.map(item => item[1]);
+
         // Gráfico de Barras - Categorias
         if(chartCat) chartCat.destroy();
         const ctxCat = document.getElementById('graficoCategoria').getContext('2d');
         chartCat = new Chart(ctxCat, {
             type: 'bar',
             data: {
-                labels: Object.keys(catData),
-                datasets: [{ label: 'Gasto R$', data: Object.values(catData), backgroundColor: '#3498db' }]
+                labels: catLabels,
+                datasets: [{ 
+                    label: 'Gasto R$', 
+                    data: catValues, 
+                    backgroundColor: '#3498db',
+                    borderRadius: 5 // Deixa as barras mais elegantes
+                }]
             },
             options: { 
                 maintainAspectRatio: false, 
                 indexAxis: 'y', 
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true } }
+                plugins: { 
+                    legend: { display: false } 
+                },
+                scales: { 
+                    x: { 
+                        beginAtZero: true,
+                        grid: { display: false } // Limpa o fundo do gráfico
+                    },
+                    y: {
+                        grid: { display: false }
+                    }
+                }
             }
         });
+
+        // Gráfico de Pizza - Pagamentos (Aqui não precisa ordenar, a pizza lida bem com os tamanhos)
+        if(chartPag) chartPag.destroy();
+        const ctxPag = document.getElementById('graficoPagamento').getContext('2d');
+        chartPag = new Chart(ctxPag, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(pagData),
+                datasets: [{ 
+                    data: Object.values(pagData), 
+                    backgroundColor: ['#e91e63','#f1c40f','#2ecc71','#9b59b6','#e67e22'] 
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    }
 
         // Gráfico de Pizza - Pagamentos
         if(chartPag) chartPag.destroy();
@@ -270,3 +309,4 @@
 </script>
 </body>
 </html>
+
