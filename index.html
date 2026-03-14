@@ -39,7 +39,6 @@
         
         input, select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #dfe6e9; border-radius: 8px; font-size: 14px; }
         
-        /* FILTRO DA TABELA */
         .table-filter-box { position: relative; margin-top: 20px; margin-bottom: 10px; }
         .table-filter-box input { padding-left: 35px; border-color: var(--primary); }
         .table-filter-box i { position: absolute; left: 12px; top: 12px; color: var(--primary); }
@@ -79,9 +78,9 @@
     </div>
 
     <div class="summary">
-        <div class="card" style="border-top-color: var(--primary)"><h3>Saldo Filtrado</h3><p id="total-saldo">R$ 0,00</p></div>
-        <div class="card" style="border-top-color: var(--secondary)"><h3>Ganhos no Filtro</h3><p id="total-receita" style="color: var(--secondary)">R$ 0,00</p></div>
-        <div class="card" style="border-top-color: var(--danger)"><h3>Gastos no Filtro</h3><p id="total-despesa" style="color: var(--danger)">R$ 0,00</p></div>
+        <div class="card" style="border-top-color: var(--primary)"><h3>Saldo Acumulado</h3><p id="total-saldo">R$ 0,00</p></div>
+        <div class="card" style="border-top-color: var(--secondary)"><h3>Ganhos Filtrados</h3><p id="total-receita" style="color: var(--secondary)">R$ 0,00</p></div>
+        <div class="card" style="border-top-color: var(--danger)"><h3>Gastos Filtrados</h3><p id="total-despesa" style="color: var(--danger)">R$ 0,00</p></div>
     </div>
 
     <div class="top-grid">
@@ -93,10 +92,12 @@
             <select id="categoria">
                 <option value="" disabled selected>Categoria</option>
                 <option value="Alimentação">Alimentação</option>
-                <option value="Moradia">Moradia</option>
-                <option value="Transporte">Transporte</option>
-                <option value="Lazer">Lazer</option>
-                <option value="Saúde">Saúde</option>
+                <option value="Mercado">Mercado</option>
+                <option value="Saúde | Beleza">Saúde | Beleza</option>
+                <option value="TV">TV</option>
+                <option value="Carro">Carro</option>
+                <option value="Salario">Salario</option>
+                <option value="Internet">Internet</option>
                 <option value="Investimentos">Investimentos</option>
                 <option value="Outros">Outros</option>
             </select>
@@ -114,17 +115,17 @@
             <button id="add-btn" onclick="adicionar()">Salvar na Planilha</button>
         </div>
 
-        <div class="section-card"><h3>Maiores Gastos</h3><div class="chart-wrapper"><canvas id="graficoCategoria"></canvas></div></div>
-        <div class="section-card"><h3>Meios de Pagamento</h3><div class="chart-wrapper"><canvas id="graficoPagamento"></canvas></div></div>
+        <div class="section-card"><h3>Gastos por Categoria</h3><div class="chart-wrapper"><canvas id="graficoCategoria"></canvas></div></div>
+        <div class="section-card"><h3>Distribuição de Pagamento</h3><div class="chart-wrapper"><canvas id="graficoPagamento"></canvas></div></div>
     </div>
 
     <div class="bottom-grid">
-        <div class="section-card"><h3>Histórico de Fluxo</h3><div class="line-chart-wrapper"><canvas id="graficoLinha"></canvas></div></div>
+        <div class="section-card"><h3>Evolução Mensal (Receitas vs Despesas)</h3><div class="line-chart-wrapper"><canvas id="graficoLinha"></canvas></div></div>
     </div>
 
     <div class="table-filter-box">
         <i class="fas fa-search"></i>
-        <input type="text" id="tabela-search" placeholder="Filtrar descrição, categoria ou pagamento..." onkeyup="renderizarTela(rawData)">
+        <input type="text" id="tabela-search" placeholder="Filtrar tabela e indicadores..." onkeyup="renderizarTela(rawData)">
     </div>
 
     <div style="overflow-x: auto;">
@@ -211,18 +212,14 @@
             const ehR = t.tipo && t.tipo.toLowerCase() === 'receita';
             const ehInv = t.categoria === 'Investimentos';
 
-            // String única para busca (descrição + categoria + pagamento)
             const matchesSearch = (t.descricao + t.categoria + t.pagamento).toLowerCase().includes(termoBusca);
 
-            // Apenas acumula no saldo e histórico se passar no termo de busca E no mês selecionado (ou meses anteriores para o acumulado)
             if (matchesSearch) {
                 if (m <= currentMonth) saldoTotalGeral += ehR ? v : -v;
                 
-                // Gráfico histórico também obedece ao filtro de busca
                 if (ehR) histRec[m] += v;
                 else histDesp[m] += v;
 
-                // Dados do Mês Selecionado (Cards e Gráficos de Pizza/Barra)
                 if (m === currentMonth) {
                     if (ehR) {
                         recM += v;
