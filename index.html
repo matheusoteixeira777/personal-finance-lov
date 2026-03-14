@@ -38,12 +38,18 @@
         .section-card h3 { margin-top: 0; margin-bottom: 15px; font-size: 1em; color: var(--primary); border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
         
         input, select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #dfe6e9; border-radius: 8px; font-size: 14px; }
+        
+        /* FILTRO DA TABELA */
+        .table-filter-box { position: relative; margin-top: 20px; margin-bottom: 10px; }
+        .table-filter-box input { padding-left: 35px; border-color: var(--primary); }
+        .table-filter-box i { position: absolute; left: 12px; top: 12px; color: var(--primary); }
+
         button#add-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; color: white; cursor: pointer; margin-top: auto; }
 
         .chart-wrapper { flex-grow: 1; min-height: 220px; position: relative; }
         .line-chart-wrapper { min-height: 300px; width: 100%; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f8f9fa; color: #636e72; font-size: 11px; text-transform: uppercase; }
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
@@ -68,14 +74,14 @@
     <div class="month-filter" id="month-filter"></div>
 
     <div class="summary-header">
-        <h2 style="margin:0; font-size: 1.1em; color: var(--primary);">Resumo de <span id="user-display">Matheus</span></h2>
+        <h2 style="margin:0; font-size: 1.1em; color: var(--primary);">Painel de <span id="user-display">Matheus</span></h2>
         <button class="hide-toggle" onclick="togglePrivacy()"><i id="eye-icon" class="fas fa-eye"></i></button>
     </div>
 
     <div class="summary">
-        <div class="card" style="border-top-color: var(--primary)"><h3>Saldo Acumulado</h3><p id="total-saldo">R$ 0,00</p></div>
-        <div class="card" style="border-top-color: var(--secondary)"><h3>Ganhos no Mês</h3><p id="total-receita" style="color: var(--secondary)">R$ 0,00</p></div>
-        <div class="card" style="border-top-color: var(--danger)"><h3>Gastos no Mês</h3><p id="total-despesa" style="color: var(--danger)">R$ 0,00</p></div>
+        <div class="card" style="border-top-color: var(--primary)"><h3>Saldo Filtrado</h3><p id="total-saldo">R$ 0,00</p></div>
+        <div class="card" style="border-top-color: var(--secondary)"><h3>Ganhos no Filtro</h3><p id="total-receita" style="color: var(--secondary)">R$ 0,00</p></div>
+        <div class="card" style="border-top-color: var(--danger)"><h3>Gastos no Filtro</h3><p id="total-despesa" style="color: var(--danger)">R$ 0,00</p></div>
     </div>
 
     <div class="top-grid">
@@ -108,12 +114,17 @@
             <button id="add-btn" onclick="adicionar()">Salvar na Planilha</button>
         </div>
 
-        <div class="section-card"><h3>Gastos por Categoria</h3><div class="chart-wrapper"><canvas id="graficoCategoria"></canvas></div></div>
-        <div class="section-card"><h3>Distribuição de Pagamento</h3><div class="chart-wrapper"><canvas id="graficoPagamento"></canvas></div></div>
+        <div class="section-card"><h3>Maiores Gastos</h3><div class="chart-wrapper"><canvas id="graficoCategoria"></canvas></div></div>
+        <div class="section-card"><h3>Meios de Pagamento</h3><div class="chart-wrapper"><canvas id="graficoPagamento"></canvas></div></div>
     </div>
 
     <div class="bottom-grid">
-        <div class="section-card"><h3>Evolução Mensal (Receitas vs Despesas)</h3><div class="line-chart-wrapper"><canvas id="graficoLinha"></canvas></div></div>
+        <div class="section-card"><h3>Histórico de Fluxo</h3><div class="line-chart-wrapper"><canvas id="graficoLinha"></canvas></div></div>
+    </div>
+
+    <div class="table-filter-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="tabela-search" placeholder="Filtrar descrição, categoria ou pagamento..." onkeyup="renderizarTela(rawData)">
     </div>
 
     <div style="overflow-x: auto;">
@@ -186,8 +197,10 @@
 
     function renderizarTela(lista) {
         const corpo = document.getElementById('corpo-tabela');
+        const termoBusca = document.getElementById('tabela-search').value.toLowerCase();
         corpo.innerHTML = '';
-        let recM = 0, despM = 0, saldoAcum = 0;
+        
+        let recM = 0, despM = 0, saldoTotalGeral = 0;
         let catD = {}, pagD = {};
         let histRec = new Array(12).fill(0), histDesp = new Array(12).fill(0);
 
@@ -198,34 +211,36 @@
             const ehR = t.tipo && t.tipo.toLowerCase() === 'receita';
             const ehInv = t.categoria === 'Investimentos';
 
-            // Saldo Acumulado (Sempre abate o saldo da conta)
-            if (m <= currentMonth) saldoAcum += ehR ? v : -v;
+            // String única para busca (descrição + categoria + pagamento)
+            const matchesSearch = (t.descricao + t.categoria + t.pagamento).toLowerCase().includes(termoBusca);
 
-            // Histórico (Sempre mostra nos gráficos para controle visual)
-            if (ehR) histRec[m] += v;
-            else histDesp[m] += v;
-
-            if (m === currentMonth) {
-                if (ehR) {
-                    recM += v;
-                } else {
-                    // SEPARAÇÃO: Se for investimento, não soma no card de gastos (despM)
-                    if (!ehInv) {
-                        despM += v; 
-                    }
-                    // Mas continua somando nos dados para os gráficos
-                    catD[t.categoria] = (catD[t.categoria] || 0) + v;
-                    pagD[t.pagamento] = (pagD[t.pagamento] || 0) + v;
-                }
+            // Apenas acumula no saldo e histórico se passar no termo de busca E no mês selecionado (ou meses anteriores para o acumulado)
+            if (matchesSearch) {
+                if (m <= currentMonth) saldoTotalGeral += ehR ? v : -v;
                 
-                let badgeClass = ehR ? 'badge-rec' : (ehInv ? 'badge-inv' : 'badge-desp');
-                const dataF = dataObjeto.toLocaleDateString('pt-br').slice(0,5);
-                corpo.innerHTML += `<tr><td>${dataF}</td><td>${t.descricao}</td><td>${t.categoria}</td><td>${t.pagamento || '-'}</td>
-                    <td><span class="badge ${badgeClass}">${t.tipo}</span></td><td style="font-weight:bold">${formatCurrency(v)}</td></tr>`;
+                // Gráfico histórico também obedece ao filtro de busca
+                if (ehR) histRec[m] += v;
+                else histDesp[m] += v;
+
+                // Dados do Mês Selecionado (Cards e Gráficos de Pizza/Barra)
+                if (m === currentMonth) {
+                    if (ehR) {
+                        recM += v;
+                    } else {
+                        if (!ehInv) despM += v; 
+                        catD[t.categoria] = (catD[t.categoria] || 0) + v;
+                        pagD[t.pagamento] = (pagD[t.pagamento] || 0) + v;
+                    }
+                    
+                    let badgeClass = ehR ? 'badge-rec' : (ehInv ? 'badge-inv' : 'badge-desp');
+                    const dataF = dataObjeto.toLocaleDateString('pt-br').slice(0,5);
+                    corpo.innerHTML += `<tr><td>${dataF}</td><td>${t.descricao}</td><td>${t.categoria}</td><td>${t.pagamento || '-'}</td>
+                        <td><span class="badge ${badgeClass}">${t.tipo}</span></td><td style="font-weight:bold">${formatCurrency(v)}</td></tr>`;
+                }
             }
         });
 
-        document.getElementById('total-saldo').innerText = formatCurrency(saldoAcum);
+        document.getElementById('total-saldo').innerText = formatCurrency(saldoTotalGeral);
         document.getElementById('total-receita').innerText = formatCurrency(recM);
         document.getElementById('total-despesa').innerText = formatCurrency(despM);
         updateCharts(catD, pagD, histRec, histDesp);
@@ -252,8 +267,8 @@
             type: 'line',
             data: { labels: meses, datasets: [
                 { label: 'Receitas', data: histRec, borderColor: '#27ae60', backgroundColor: '#27ae60', tension: 0.3 },
-                { label: 'Despesas (Inc. Inv)', data: histDesp, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3 },
-                { label: 'Saldo (R$)', data: histRec.map((r, i) => r - histDesp[i]), backgroundColor: '#2c3e50', type: 'bar', borderRadius: 5 }
+                { label: 'Despesas', data: histDesp, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3 },
+                { label: 'Saldo', data: histRec.map((r, i) => r - histDesp[i]), backgroundColor: '#2c3e50', type: 'bar', borderRadius: 5 }
             ]},
             options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
